@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моите Задачи</title>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .box { width: 100%; max-width: 400px; margin-bottom: 15px; }
+        input { width: 100%; padding: 15px; background: #1e1e1e; border: 1px solid #333; color: white; border-radius: 8px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-add { background: #BB86FC; color: #000; }
+        .btn-test { background: orange; color: #000; margin-top: 20px; }
+        .log-area { background: #222; color: yellow; padding: 10px; font-family: monospace; font-size: 12px; width: 100%; border: 1px solid #444; margin-top: 20px; }
+        .task-item { background: #1e1e1e; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid #BB86FC; }
+    </style>
+</head>
+<body>
+
+    <h1>✅ Задачи (PWA)</h1>
+
+    <div class="box">
+        <input type="text" id="taskDesc" placeholder="Задача...">
+        <input type="time" id="taskTime">
+        <button onclick="addTask()" class="btn-add">Добави Задача</button>
+    </div>
+
+    <div id="taskList" class="box"></div>
+
+    <button onclick="testNotification()" class="btn-test">🔔 ТЕСТ ИЗВЕСТИЕ</button>
+    <div id="logs" class="log-area">Лог на системата...</div>
+
+    <script>
+        // 1. РЕГИСТРАЦИЯ НА SERVICE WORKER (Задължително за Андроид!)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => log("Service Worker регистриран!"))
+                .catch(err => log("Грешка при SW: " + err));
+        }
+
+        let tasks = [];
+        
+        // Позволява известия при старт
+        Notification.requestPermission();
+
+        // Проверка на всеки 10 секунди
+        setInterval(checkReminders, 10000);
+
+        function log(text) {
+            const el = document.getElementById('logs');
+            el.innerHTML = text + "<br>" + el.innerHTML;
+        }
+
+        function addTask() {
+            const desc = document.getElementById('taskDesc').value;
+            const time = document.getElementById('taskTime').value;
+            if(!desc || !time) return alert("Попълни всичко!");
+            
+            tasks.push({ desc, time, notified: false });
+            renderTasks();
+            log("Добавено: " + desc + " за " + time);
+        }
+
+        function checkReminders() {
+            const now = new Date();
+            const currentTime = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
+            
+            tasks.forEach(task => {
+                if (task.time === currentTime && !task.notified) {
+                    showNotification(task.desc);
+                    task.notified = true;
+                }
+            });
+        }
+
+        // НОВАТА ФУНКЦИЯ ЗА ИЗВЕСТИЯ
+        function showNotification(text) {
+            log("Опитвам да пратя известие: " + text);
+            
+            if (Notification.permission === 'granted') {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification('Напомняне!', {
+                        body: text,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/762/762686.png',
+                        vibrate: [200, 100, 200]
+                    });
+                    log("Известието е изпратено към Android!");
+                }).catch(e => log("ГРЕШКА при пращане: " + e));
+            } else {
+                log("Няма права! Статус: " + Notification.permission);
+                Notification.requestPermission();
+            }
+        }
+
+        function testNotification() {
+            showNotification("Това е ръчен тест!");
+        }
+
+        function renderTasks() {
+            document.getElementById('taskList').innerHTML = tasks.map(t => 
+                `<div class="task-item">⏰ ${t.time} - ${t.desc}</div>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>
