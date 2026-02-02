@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моят Органайзер</title>
+    <title>Моите Задачи</title>
     <link rel="manifest" href="manifest.json">
     <style>
         body { 
             background-color: #121212; 
-            color: #ffffff; 
+            color: #eee; 
             font-family: 'Segoe UI', sans-serif; 
             margin: 0; 
             padding: 20px; 
@@ -16,122 +16,135 @@
             flex-direction: column; 
             align-items: center; 
         }
-        h1 { color: #BB86FC; margin-bottom: 20px; }
         
-        .input-group {
+        h1 { color: #BB86FC; margin-bottom: 20px; font-weight: 300; }
+        
+        /* Панел за добавяне */
+        .add-panel {
             background: #1e1e1e;
             padding: 15px;
-            border-radius: 12px;
+            border-radius: 15px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             display: flex;
-            flex-direction: column;
             gap: 10px;
+            margin-bottom: 25px;
         }
         
-        input {
-            padding: 12px;
-            background: #2c2c2c;
-            border: 1px solid #333;
-            color: white;
-            border-radius: 8px;
-            font-size: 16px;
-        }
+        input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 8px; border: none; background: #2c2c2c; color: white; }
+        input[type="time"] { padding: 10px; border-radius: 8px; border: none; background: #2c2c2c; color: white; }
         
-        button.add-btn {
-            background: #BB86FC;
-            color: #000;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 16px;
-            margin-top: 5px;
+        .btn-add {
+            background: #BB86FC; color: #000; border: none;
+            border-radius: 8px; padding: 0 15px; font-size: 20px; cursor: pointer;
         }
 
-        #taskList {
-            width: 100%;
-            max-width: 400px;
-            margin-top: 20px;
-        }
+        /* Списък */
+        #taskList { width: 100%; max-width: 400px; }
 
         .task-card {
             background: #1e1e1e;
             padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
+            margin-bottom: 12px;
+            border-radius: 12px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-left: 5px solid #03dac6;
+            transition: all 0.3s ease;
+            border-left: 4px solid #03dac6;
         }
 
-        .task-info { display: flex; flex-direction: column; }
-        .task-time { font-weight: bold; color: #03dac6; font-size: 1.1em; }
-        .task-desc { margin-top: 4px; color: #ddd; }
+        /* Стилове за завършена задача */
+        .task-card.done {
+            opacity: 0.5;
+            border-left: 4px solid #555;
+            text-decoration: line-through;
+        }
 
-        .actions button {
-            background: none;
-            border: none;
-            font-size: 1.2em;
-            padding: 5px 10px;
-            margin-left: 5px;
+        .check-circle {
+            width: 24px; height: 24px;
+            border: 2px solid #03dac6;
+            border-radius: 50%;
+            margin-right: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-card.done .check-circle {
+            background: #03dac6;
+        }
+
+        .info { flex-grow: 1; }
+        .time { font-size: 0.85em; color: #aaa; display: block; }
+        .text { font-size: 1.1em; font-weight: 500; }
+
+        .btn-del {
+            background: none; border: none; font-size: 1.2em; color: #ff5555; padding: 5px;
         }
     </style>
 </head>
 <body>
 
-    <h1>📅 Задачи v2.0</h1>
-
+    <h1>📝 Задачи</h1>
+    
     <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-    <div class="input-group">
-        <input type="text" id="taskDesc" placeholder="Какво трябва да свърша?">
+    <div class="add-panel">
+        <input type="text" id="taskDesc" placeholder="Напиши задача...">
         <input type="time" id="taskTime">
-        <button onclick="addTask()" class="add-btn">➕ Добави Задача</button>
+        <button onclick="addTask()" class="btn-add">➕</button>
     </div>
 
-    <div id="taskList">
-        </div>
+    <div id="taskList"></div>
 
     <script>
-        // 1. ЗАРЕЖДАНЕ ОТ ПАМЕТТА (Local Storage)
-        let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
+        // Зареждане от паметта
+        let tasks = JSON.parse(localStorage.getItem('myTasksV3')) || [];
         
-        // Стартираме Service Worker и показваме задачите
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+        // Регистрация на работник
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
         Notification.requestPermission();
-        renderTasks();
         
-        // Проверка на всеки 5 секунди
-        setInterval(checkReminders, 5000);
+        renderTasks();
+        setInterval(checkReminders, 4000);
 
         function addTask() {
             const desc = document.getElementById('taskDesc').value;
             const time = document.getElementById('taskTime').value;
+            if (!desc) return alert("Напиши нещо!");
 
-            if (!desc || !time) return alert("Моля попълнете час и задача!");
-
-            tasks.push({ id: Date.now(), desc, time, notified: false });
-            saveTasks();
+            // Ако няма час, слагаме празно
+            tasks.push({ 
+                id: Date.now(), 
+                desc, 
+                time: time || "", 
+                completed: false, 
+                notified: false 
+            });
             
-            // Изчистване на полетата
+            saveAndRender();
             document.getElementById('taskDesc').value = '';
-            renderTasks();
+        }
+
+        function toggleComplete(id) {
+            // Намира задачата и обръща статуса (Готово <-> Не е готово)
+            tasks = tasks.map(t => {
+                if (t.id === id) t.completed = !t.completed;
+                return t;
+            });
+            saveAndRender();
         }
 
         function deleteTask(id) {
             tasks = tasks.filter(t => t.id !== id);
-            saveTasks();
-            renderTasks();
+            saveAndRender();
         }
 
-        function saveTasks() {
-            // Записване в паметта на телефона
-            localStorage.setItem('myTasks', JSON.stringify(tasks));
+        function saveAndRender() {
+            localStorage.setItem('myTasksV3', JSON.stringify(tasks));
+            renderTasks();
         }
 
         function checkReminders() {
@@ -139,43 +152,42 @@
             const currentTime = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
 
             tasks.forEach(task => {
-                // Ако часът съвпада И още не сме известили
-                if (task.time === currentTime && !task.notified) {
+                // Известяваме само ако има час, съвпада и НЕ е завършена задачата
+                if (task.time === currentTime && !task.notified && !task.completed) {
                     
-                    // 1. Пускаме известие
                     if(Notification.permission === 'granted') {
                         navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification('Напомняне!', {
-                                body: task.desc,
+                            reg.showNotification('Време е!', {
+                                body: task.task,
                                 icon: 'https://cdn-icons-png.flaticon.com/512/762/762686.png',
                                 vibrate: [500, 200, 500] 
                             });
                         });
                     }
-
-                    // 2. ОПИТ ЗА ЗВУК (План Б)
-                    document.getElementById('alarmSound').play().catch(e => console.log("Браузърът спря звука: " + e));
-
+                    // Опит за звук
+                    document.getElementById('alarmSound').play().catch(e => console.log("Sound blocked"));
+                    
                     task.notified = true;
-                    saveTasks(); // Записваме, че сме известили
+                    saveAndRender();
                 }
             });
         }
 
         function renderTasks() {
-            // Сортиране по час
-            tasks.sort((a, b) => a.time.localeCompare(b.time));
+            // Сортиране: Първо незавършените, после по час
+            tasks.sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 
             const list = document.getElementById('taskList');
             list.innerHTML = tasks.map(task => `
-                <div class="task-card" style="opacity: ${task.notified ? 0.5 : 1}">
-                    <div class="task-info">
-                        <span class="task-time">⏰ ${task.time}</span>
-                        <span class="task-desc">${task.desc}</span>
+                <div class="task-card ${task.completed ? 'done' : ''}">
+                    <div class="check-circle" onclick="toggleComplete(${task.id})">
+                        ${task.completed ? '✔' : ''}
                     </div>
-                    <div class="actions">
-                        <button onclick="deleteTask(${task.id})">🗑️</button>
+                    <div class="info">
+                        <span class="time">${task.time ? '⏰ ' + task.time : ''}</span>
+                        <span class="text">${task.desc}</span>
                     </div>
+                    <button onclick="deleteTask(${task.id})" class="btn-del">🗑️</button>
                 </div>
             `).join('');
         }
