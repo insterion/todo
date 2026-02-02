@@ -3,193 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моите Задачи</title>
+    <title>Smart Planner</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { 
-            background-color: #121212; 
-            color: #eee; 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-        }
+        :root { --primary: #BB86FC; --bg: #121212; --card: #1e1e1e; --text: #eee; --accent: #03dac6; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; padding-bottom: 80px; }
         
-        h1 { color: #BB86FC; margin-bottom: 20px; font-weight: 300; }
+        h2 { color: var(--primary); font-weight: 300; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
         
-        /* Панел за добавяне */
-        .add-panel {
-            background: #1e1e1e;
-            padding: 15px;
-            border-radius: 15px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-        
-        input[type="text"] { flex-grow: 1; padding: 10px; border-radius: 8px; border: none; background: #2c2c2c; color: white; }
-        input[type="time"] { padding: 10px; border-radius: 8px; border: none; background: #2c2c2c; color: white; }
-        
-        .btn-add {
-            background: #BB86FC; color: #000; border: none;
-            border-radius: 8px; padding: 0 15px; font-size: 20px; cursor: pointer;
-        }
+        /* Секции */
+        .section-title { font-size: 0.9em; color: #888; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Списък */
-        #taskList { width: 100%; max-width: 400px; }
-
+        /* Карти */
         .task-card {
-            background: #1e1e1e;
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s ease;
-            border-left: 4px solid #03dac6;
+            background: var(--card); padding: 15px; margin-bottom: 10px; border-radius: 12px;
+            display: flex; align-items: center; border-left: 4px solid var(--accent);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-
-        /* Стилове за завършена задача */
-        .task-card.done {
-            opacity: 0.5;
-            border-left: 4px solid #555;
-            text-decoration: line-through;
-        }
+        .task-card.overdue { border-left-color: #ff5555; }
+        .task-card.future { border-left-color: #555; opacity: 0.8; }
 
         .check-circle {
-            width: 24px; height: 24px;
-            border: 2px solid #03dac6;
-            border-radius: 50%;
-            margin-right: 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            min-width: 24px; height: 24px; border: 2px solid var(--accent); border-radius: 50%;
+            margin-right: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
-
-        .task-card.done .check-circle {
-            background: #03dac6;
-        }
-
+        
         .info { flex-grow: 1; }
-        .time { font-size: 0.85em; color: #aaa; display: block; }
-        .text { font-size: 1.1em; font-weight: 500; }
+        .meta { font-size: 0.8em; color: #aaa; display: flex; gap: 10px; }
+        .recurrence-badge { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
 
-        .btn-del {
-            background: none; border: none; font-size: 1.2em; color: #ff5555; padding: 5px;
+        .btn-del { background: none; border: none; font-size: 1.2em; color: #666; padding: 5px; }
+
+        /* FAB (Плаващ бутон) */
+        .fab {
+            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            background: var(--primary); color: #000; border-radius: 50%; border: none;
+            font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 10;
         }
+
+        /* Модален прозорец (Add Task) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 20;
+        }
+        .modal {
+            background: var(--card); padding: 20px; border-radius: 15px; width: 90%; max-width: 400px;
+        }
+        .modal input, .modal select {
+            width: 100%; padding: 12px; margin-bottom: 15px; background: #2c2c2c;
+            border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-save { background: var(--primary); color: #000; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; }
+        .btn-cancel { background: transparent; color: #aaa; padding: 10px 20px; border: none; }
+        
+        /* Скриване на къстъм полето */
+        #customDaysRow { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>📝 Задачи</h1>
-    
     <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-    <div class="add-panel">
-        <input type="text" id="taskDesc" placeholder="Напиши задача...">
-        <input type="time" id="taskTime">
-        <button onclick="addTask()" class="btn-add">➕</button>
+    <div id="app">
+        </div>
+
+    <button class="fab" onclick="openModal()">+</button>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3 style="margin-top:0">Нова Задача</h3>
+            
+            <input type="text" id="inpDesc" placeholder="Какво ще правим?">
+            
+            <label>Дата и Час:</label>
+            <div style="display:flex; gap:5px;">
+                <input type="date" id="inpDate">
+                <input type="time" id="inpTime">
+            </div>
+
+            <label>Повторение:</label>
+            <select id="inpRepeat" onchange="toggleCustomRepeat()">
+                <option value="none">Без повторение</option>
+                <option value="daily">Всеки ден</option>
+                <option value="weekly">Всяка седмица</option>
+                <option value="monthly">Всеки месец</option>
+                <option value="custom">Персонализирано (на дни)</option>
+            </select>
+
+            <div id="customDaysRow">
+                <input type="number" id="inpDays" placeholder="На всеки колко дни?" value="5">
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Отказ</button>
+                <button class="btn-save" onclick="saveTask()">Запази</button>
+            </div>
+        </div>
     </div>
 
-    <div id="taskList"></div>
-
     <script>
-        // Зареждане от паметта
-        let tasks = JSON.parse(localStorage.getItem('myTasksV3')) || [];
+        // --- 1. CONFIG & INIT ---
+        let tasks = JSON.parse(localStorage.getItem('smartTasks')) || [];
         
-        // Регистрация на работник
+        // Миграция от стари версии (ако се наложи, просто чистим за по-лесно при V4)
+        if(localStorage.getItem('myTasksV3')) {
+            localStorage.removeItem('myTasksV3'); // Чистим старата версия
+            alert("Версията е обновена! Старите задачи бяха в несъвместим формат.");
+        }
+
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
         Notification.requestPermission();
         
-        renderTasks();
-        setInterval(checkReminders, 4000);
+        // Настройка на днешна дата по подразбиране
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('inpDate').value = todayStr;
 
-        function addTask() {
-            const desc = document.getElementById('taskDesc').value;
-            const time = document.getElementById('taskTime').value;
-            if (!desc) return alert("Напиши нещо!");
+        render();
+        setInterval(checkReminders, 5000);
 
-            // Ако няма час, слагаме празно
-            tasks.push({ 
-                id: Date.now(), 
-                desc, 
-                time: time || "", 
-                completed: false, 
-                notified: false 
-            });
-            
-            saveAndRender();
-            document.getElementById('taskDesc').value = '';
+        // --- 2. LOGIC ---
+
+        function saveTask() {
+            const desc = document.getElementById('inpDesc').value;
+            const date = document.getElementById('inpDate').value || todayStr;
+            const time = document.getElementById('inpTime').value;
+            const repeatType = document.getElementById('inpRepeat').value;
+            const customDays = document.getElementById('inpDays').value;
+
+            if(!desc) return alert("Трябва описание!");
+
+            const newTask = {
+                id: Date.now(),
+                desc,
+                date,
+                time, // Може да е празно
+                repeat: repeatType,
+                customInterval: (repeatType === 'custom') ? parseInt(customDays) : 0,
+                notified: false
+            };
+
+            tasks.push(newTask);
+            saveData();
+            closeModal();
+            render();
         }
 
-        function toggleComplete(id) {
-            // Намира задачата и обръща статуса (Готово <-> Не е готово)
-            tasks = tasks.map(t => {
-                if (t.id === id) t.completed = !t.completed;
-                return t;
-            });
-            saveAndRender();
+        function completeTask(id) {
+            const index = tasks.findIndex(t => t.id === id);
+            if (index === -1) return;
+            
+            const task = tasks[index];
+
+            // Ако е повтаряща се задача - пренасрочваме я!
+            if (task.repeat !== 'none') {
+                const nextDate = new Date(task.date);
+                
+                // Логика за добавяне на дни
+                if (task.repeat === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+                else if (task.repeat === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+                else if (task.repeat === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+                else if (task.repeat === 'custom') nextDate.setDate(nextDate.getDate() + task.customInterval);
+
+                // Обновяваме задачата с новата дата
+                task.date = nextDate.toISOString().split('T')[0];
+                task.notified = false; // Рестартираме известието
+                
+                alert(`Задачата е завършена! Следваща дата: ${task.date}`);
+            } else {
+                // Ако е еднократна - трием я (или може да я местим в история)
+                tasks.splice(index, 1);
+            }
+
+            saveData();
+            render();
         }
 
         function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            saveAndRender();
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('myTasksV3', JSON.stringify(tasks));
-            renderTasks();
+            if(confirm("Сигурен ли си?")) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveData();
+                render();
+            }
         }
 
         function checkReminders() {
             const now = new Date();
+            const currentDate = now.toISOString().split('T')[0];
             const currentTime = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
 
+            let changed = false;
+
             tasks.forEach(task => {
-                // Известяваме само ако има час, съвпада и НЕ е завършена задачата
-                if (task.time === currentTime && !task.notified && !task.completed) {
+                // Проверка: Днешна дата ЛИ Е? И Времето съвпада ли? И Не сме ли я известили?
+                if (task.date === currentDate && task.time === currentTime && !task.notified) {
                     
+                    // Известие
                     if(Notification.permission === 'granted') {
                         navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification('Време е!', {
-                                body: task.task,
+                            reg.showNotification('Напомняне', {
+                                body: task.desc,
                                 icon: 'https://cdn-icons-png.flaticon.com/512/762/762686.png',
-                                vibrate: [500, 200, 500] 
+                                vibrate: [500, 200, 500]
                             });
                         });
                     }
-                    // Опит за звук
-                    document.getElementById('alarmSound').play().catch(e => console.log("Sound blocked"));
+                    // Звук
+                    document.getElementById('alarmSound').play().catch(e=>{});
                     
                     task.notified = true;
-                    saveAndRender();
+                    changed = true;
                 }
             });
+
+            if(changed) saveData();
         }
 
-        function renderTasks() {
-            // Сортиране: Първо незавършените, после по час
-            tasks.sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+        // --- 3. UI RENDERING ---
 
-            const list = document.getElementById('taskList');
-            list.innerHTML = tasks.map(task => `
-                <div class="task-card ${task.completed ? 'done' : ''}">
-                    <div class="check-circle" onclick="toggleComplete(${task.id})">
-                        ${task.completed ? '✔' : ''}
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = ""; // Чистим екрана
+
+            // Сортиране по дата и час
+            tasks.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return (a.time || "00:00").localeCompare(b.time || "00:00");
+            });
+
+            // Групиране
+            const today = new Date().toISOString().split('T')[0];
+            const todayTasks = tasks.filter(t => t.date === today);
+            const futureTasks = tasks.filter(t => t.date > today);
+            const overdueTasks = tasks.filter(t => t.date < today);
+
+            // Рендериране на групите
+            if (overdueTasks.length > 0) renderGroup("⚠️ Пропуснати", overdueTasks, "overdue");
+            renderGroup("📅 Днес", todayTasks, "today");
+            renderGroup("🔜 Предстоящи", futureTasks, "future");
+            
+            if (tasks.length === 0) app.innerHTML = "<div style='text-align:center; margin-top:50px; color:#555'>Няма задачи. Натисни + долу вдясно!</div>";
+        }
+
+        function renderGroup(title, list, className) {
+            if (list.length === 0 && className !== 'today') return; // Не показваме празни групи (освен днес)
+
+            const html = `
+                <div class="section-title">${title}</div>
+                ${list.map(t => `
+                    <div class="task-card ${className}">
+                        <div class="check-circle" onclick="completeTask(${t.id})">✔</div>
+                        <div class="info">
+                            <div class="text">${t.desc}</div>
+                            <div class="meta">
+                                ${t.time ? `<span>⏰ ${t.time}</span>` : ''}
+                                <span>🗓️ ${formatDate(t.date)}</span>
+                                ${t.repeat !== 'none' ? `<span class="recurrence-badge">↻ ${formatRepeat(t)}</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn-del" onclick="deleteTask(${t.id})">🗑️</button>
                     </div>
-                    <div class="info">
-                        <span class="time">${task.time ? '⏰ ' + task.time : ''}</span>
-                        <span class="text">${task.desc}</span>
-                    </div>
-                    <button onclick="deleteTask(${task.id})" class="btn-del">🗑️</button>
-                </div>
-            `).join('');
+                `).join('')}
+            `;
+            document.getElementById('app').innerHTML += html;
+        }
+
+        // --- 4. HELPERS ---
+        
+        function saveData() {
+            localStorage.setItem('smartTasks', JSON.stringify(tasks));
+        }
+
+        function toggleCustomRepeat() {
+            const val = document.getElementById('inpRepeat').value;
+            document.getElementById('customDaysRow').style.display = (val === 'custom') ? 'block' : 'none';
+        }
+
+        function openModal() { document.getElementById('modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function formatDate(dateStr) {
+            // Форматира YYYY-MM-DD към по-четим вид
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
+        }
+        
+        function formatRepeat(task) {
+            if(task.repeat === 'daily') return 'Дн.';
+            if(task.repeat === 'weekly') return 'Седм.';
+            if(task.repeat === 'monthly') return 'Мес.';
+            if(task.repeat === 'custom') return `${task.customInterval} д.`;
+            return '';
         }
     </script>
 </body>
