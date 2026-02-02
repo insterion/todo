@@ -1,99 +1,148 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="bg" style="color-scheme: dark;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Planner</title>
+    <title>Smart Planner Pro</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        :root { --primary: #BB86FC; --bg: #121212; --card: #1e1e1e; --text: #eee; --accent: #03dac6; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; padding-bottom: 80px; }
+        :root { 
+            --primary: #BB86FC; 
+            --bg: #000000; 
+            --card: #1c1c1e; 
+            --text: #ffffff; 
+            --accent: #03dac6; 
+            --gray: #2c2c2e;
+        }
         
-        h2 { color: var(--primary); font-weight: 300; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            padding-bottom: 90px; /* Място за бутона */
+        }
+        
+        /* Заглавие */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h2 { margin: 0; font-weight: 700; font-size: 24px; background: linear-gradient(90deg, #BB86FC, #03dac6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
         /* Секции */
-        .section-title { font-size: 0.9em; color: #888; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .section-title { font-size: 0.85em; color: #888; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
         /* Карти */
         .task-card {
-            background: var(--card); padding: 15px; margin-bottom: 10px; border-radius: 12px;
+            background: var(--card); padding: 16px; margin-bottom: 12px; border-radius: 16px;
             display: flex; align-items: center; border-left: 4px solid var(--accent);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;
         }
-        .task-card.overdue { border-left-color: #ff5555; }
-        .task-card.future { border-left-color: #555; opacity: 0.8; }
+        .task-card:active { transform: scale(0.98); }
+        .task-card.overdue { border-left-color: #ff453a; } /* Червено за пропуснати */
+        .task-card.future { border-left-color: #555; opacity: 0.7; }
 
         .check-circle {
-            min-width: 24px; height: 24px; border: 2px solid var(--accent); border-radius: 50%;
+            min-width: 26px; height: 26px; border: 2px solid var(--accent); border-radius: 50%;
             margin-right: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         
-        .info { flex-grow: 1; }
-        .meta { font-size: 0.8em; color: #aaa; display: flex; gap: 10px; }
-        .recurrence-badge { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .info { flex-grow: 1; overflow: hidden; }
+        .text { font-size: 1.1em; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .meta { font-size: 0.85em; color: #aaa; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        
+        .tag { background: #333; padding: 2px 8px; border-radius: 6px; font-size: 0.85em; display: flex; align-items: center; gap: 4px; }
+        .tag-end { color: #ff9f0a; } /* Оранжево за краен срок */
 
-        .btn-del { background: none; border: none; font-size: 1.2em; color: #666; padding: 5px; }
+        .btn-del { background: none; border: none; font-size: 1.2em; color: #666; padding: 10px; cursor: pointer; }
 
         /* FAB (Плаващ бутон) */
         .fab {
-            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            position: fixed; bottom: 25px; right: 25px; width: 64px; height: 64px;
             background: var(--primary); color: #000; border-radius: 50%; border: none;
-            font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer;
-            display: flex; align-items: center; justify-content: center; z-index: 10;
+            font-size: 32px; box-shadow: 0 4px 20px rgba(187, 134, 252, 0.4); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
         }
 
-        /* Модален прозорец (Add Task) */
+        /* Модален прозорец */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 20;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 200;
         }
         .modal {
-            background: var(--card); padding: 20px; border-radius: 15px; width: 90%; max-width: 400px;
+            background: var(--card); padding: 25px; border-radius: 20px; width: 85%; max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-        .modal input, .modal select {
-            width: 100%; padding: 12px; margin-bottom: 15px; background: #2c2c2c;
-            border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px;
-        }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-save { background: var(--primary); color: #000; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; }
-        .btn-cancel { background: transparent; color: #aaa; padding: 10px 20px; border: none; }
         
-        /* Скриване на къстъм полето */
-        #customDaysRow { display: none; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em; }
+        
+        input, select {
+            width: 100%; padding: 14px; background: var(--gray); border: 1px solid #3a3a3c;
+            color: white; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none;
+        }
+        input:focus { border-color: var(--primary); }
+
+        .row { display: flex; gap: 10px; }
+        
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; }
+        .btn-save { background: var(--primary); color: #000; padding: 12px 24px; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; }
+        .btn-cancel { background: transparent; color: #aaa; padding: 12px 20px; border: none; font-size: 16px; }
+        
+        #customDaysRow, #endDateRow { display: none; }
+        
+        /* Анимация */
+        @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .modal { animation: pop 0.2s ease-out; }
     </style>
 </head>
 <body>
 
-    <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <header>
+        <h2>Smart Planner</h2>
+    </header>
 
-    <div id="app">
-        </div>
+    <div id="app"></div>
 
     <button class="fab" onclick="openModal()">+</button>
 
     <div class="modal-overlay" id="modal">
         <div class="modal">
-            <h3 style="margin-top:0">Нова Задача</h3>
+            <h3 style="margin-top:0; color:white;">Нова Задача</h3>
             
-            <input type="text" id="inpDesc" placeholder="Какво ще правим?">
+            <div class="form-group">
+                <input type="text" id="inpDesc" placeholder="Напиши заглавие...">
+            </div>
             
-            <label>Дата и Час:</label>
-            <div style="display:flex; gap:5px;">
-                <input type="date" id="inpDate">
-                <input type="time" id="inpTime">
+            <div class="row form-group">
+                <div style="flex:1">
+                    <label>Начало:</label>
+                    <input type="date" id="inpDate">
+                </div>
+                <div style="flex:0.6">
+                    <label>Час:</label>
+                    <input type="time" id="inpTime">
+                </div>
             </div>
 
-            <label>Повторение:</label>
-            <select id="inpRepeat" onchange="toggleCustomRepeat()">
-                <option value="none">Без повторение</option>
-                <option value="daily">Всеки ден</option>
-                <option value="weekly">Всяка седмица</option>
-                <option value="monthly">Всеки месец</option>
-                <option value="custom">Персонализирано (на дни)</option>
-            </select>
+            <div class="form-group">
+                <label>Повторение:</label>
+                <select id="inpRepeat" onchange="handleRepeatChange()">
+                    <option value="none">Еднократно</option>
+                    <option value="daily">Всеки ден</option>
+                    <option value="weekly">Всяка седмица</option>
+                    <option value="custom">Персонализирано (на дни)</option>
+                </select>
+            </div>
 
-            <div id="customDaysRow">
-                <input type="number" id="inpDays" placeholder="На всеки колко дни?" value="5">
+            <div class="form-group" id="customDaysRow">
+                <label>На всеки колко дни?</label>
+                <input type="number" id="inpDays" value="5">
+            </div>
+            
+            <div class="form-group" id="endDateRow">
+                <label>Спри повтарянето след (Краен срок):</label>
+                <input type="date" id="inpEndDate" style="border-color: #ff9f0a;">
             </div>
 
             <div class="modal-buttons">
@@ -103,20 +152,16 @@
         </div>
     </div>
 
-    <script>
-        // --- 1. CONFIG & INIT ---
-        let tasks = JSON.parse(localStorage.getItem('smartTasks')) || [];
-        
-        // Миграция от стари версии (ако се наложи, просто чистим за по-лесно при V4)
-        if(localStorage.getItem('myTasksV3')) {
-            localStorage.removeItem('myTasksV3'); // Чистим старата версия
-            alert("Версията е обновена! Старите задачи бяха в несъвместим формат.");
-        }
+    <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
+    <script>
+        // --- 1. CONFIG ---
+        let tasks = JSON.parse(localStorage.getItem('tasksV5')) || [];
+        
+        // Регистриране на Service Worker
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
         Notification.requestPermission();
         
-        // Настройка на днешна дата по подразбиране
         const todayStr = new Date().toISOString().split('T')[0];
         document.getElementById('inpDate').value = todayStr;
 
@@ -131,16 +176,18 @@
             const time = document.getElementById('inpTime').value;
             const repeatType = document.getElementById('inpRepeat').value;
             const customDays = document.getElementById('inpDays').value;
+            const endDate = document.getElementById('inpEndDate').value; // Новата крайна дата
 
-            if(!desc) return alert("Трябва описание!");
+            if(!desc) return alert("Моля напиши заглавие!");
 
             const newTask = {
                 id: Date.now(),
                 desc,
                 date,
-                time, // Може да е празно
+                time, 
                 repeat: repeatType,
                 customInterval: (repeatType === 'custom') ? parseInt(customDays) : 0,
+                endDate: endDate || null, // Запазваме крайната дата
                 notified: false
             };
 
@@ -153,27 +200,35 @@
         function completeTask(id) {
             const index = tasks.findIndex(t => t.id === id);
             if (index === -1) return;
-            
             const task = tasks[index];
 
-            // Ако е повтаряща се задача - пренасрочваме я!
-            if (task.repeat !== 'none') {
-                const nextDate = new Date(task.date);
-                
-                // Логика за добавяне на дни
-                if (task.repeat === 'daily') nextDate.setDate(nextDate.getDate() + 1);
-                else if (task.repeat === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
-                else if (task.repeat === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-                else if (task.repeat === 'custom') nextDate.setDate(nextDate.getDate() + task.customInterval);
-
-                // Обновяваме задачата с новата дата
-                task.date = nextDate.toISOString().split('T')[0];
-                task.notified = false; // Рестартираме известието
-                
-                alert(`Задачата е завършена! Следваща дата: ${task.date}`);
-            } else {
-                // Ако е еднократна - трием я (или може да я местим в история)
+            // Ако е еднократна - трием веднага
+            if (task.repeat === 'none') {
                 tasks.splice(index, 1);
+                saveData(); render();
+                return;
+            }
+
+            // Иначе изчисляваме следващата дата
+            const currentObj = new Date(task.date);
+            let nextDate = new Date(currentObj);
+
+            if (task.repeat === 'daily') nextDate.setDate(currentObj.getDate() + 1);
+            else if (task.repeat === 'weekly') nextDate.setDate(currentObj.getDate() + 7);
+            else if (task.repeat === 'custom') nextDate.setDate(currentObj.getDate() + task.customInterval);
+
+            const nextDateStr = nextDate.toISOString().split('T')[0];
+
+            // ПРОВЕРКА ЗА КРАЕН СРОК
+            if (task.endDate && nextDateStr > task.endDate) {
+                if(confirm("Това беше последното повторение според крайния срок. Да приключа ли задачата?")) {
+                    tasks.splice(index, 1);
+                }
+            } else {
+                // Просто местим за следващия път
+                task.date = nextDateStr;
+                task.notified = false;
+                alert(`Готово! Преместена за ${formatDate(task.date)}`);
             }
 
             saveData();
@@ -181,121 +236,96 @@
         }
 
         function deleteTask(id) {
-            if(confirm("Сигурен ли си?")) {
+            if(confirm("Изтриване?")) {
                 tasks = tasks.filter(t => t.id !== id);
-                saveData();
-                render();
+                saveData(); render();
             }
         }
 
         function checkReminders() {
             const now = new Date();
-            const currentDate = now.toISOString().split('T')[0];
-            const currentTime = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
 
             let changed = false;
-
-            tasks.forEach(task => {
-                // Проверка: Днешна дата ЛИ Е? И Времето съвпада ли? И Не сме ли я известили?
-                if (task.date === currentDate && task.time === currentTime && !task.notified) {
-                    
-                    // Известие
-                    if(Notification.permission === 'granted') {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification('Напомняне', {
-                                body: task.desc,
-                                icon: 'https://cdn-icons-png.flaticon.com/512/762/762686.png',
-                                vibrate: [500, 200, 500]
-                            });
-                        });
-                    }
-                    // Звук
-                    document.getElementById('alarmSound').play().catch(e=>{});
-                    
-                    task.notified = true;
+            tasks.forEach(t => {
+                if (t.date === dateStr && t.time === timeStr && !t.notified) {
+                    new Notification("Напомняне", { body: t.desc, icon: 'https://cdn-icons-png.flaticon.com/512/762/762686.png', vibrate: [500] });
+                    document.getElementById('alarmSound').play().catch(()=>{});
+                    t.notified = true;
                     changed = true;
                 }
             });
-
             if(changed) saveData();
         }
 
-        // --- 3. UI RENDERING ---
+        // --- 3. UI ---
 
         function render() {
             const app = document.getElementById('app');
-            app.innerHTML = ""; // Чистим екрана
+            app.innerHTML = "";
 
-            // Сортиране по дата и час
-            tasks.sort((a, b) => {
-                if (a.date !== b.date) return a.date.localeCompare(b.date);
-                return (a.time || "00:00").localeCompare(b.time || "00:00");
-            });
+            tasks.sort((a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""));
 
-            // Групиране
             const today = new Date().toISOString().split('T')[0];
-            const todayTasks = tasks.filter(t => t.date === today);
-            const futureTasks = tasks.filter(t => t.date > today);
-            const overdueTasks = tasks.filter(t => t.date < today);
-
-            // Рендериране на групите
-            if (overdueTasks.length > 0) renderGroup("⚠️ Пропуснати", overdueTasks, "overdue");
-            renderGroup("📅 Днес", todayTasks, "today");
-            renderGroup("🔜 Предстоящи", futureTasks, "future");
             
-            if (tasks.length === 0) app.innerHTML = "<div style='text-align:center; margin-top:50px; color:#555'>Няма задачи. Натисни + долу вдясно!</div>";
+            // Групиране
+            const overdue = tasks.filter(t => t.date < today);
+            const todayList = tasks.filter(t => t.date === today);
+            const future = tasks.filter(t => t.date > today);
+
+            if (overdue.length) renderGroup("⚠️ Пропуснати", overdue, "overdue");
+            renderGroup("📅 Днес", todayList, "today");
+            renderGroup("🔜 Предстоящи", future, "future");
+
+            if(!tasks.length) app.innerHTML = "<div style='text-align:center; color:#444; margin-top:50px;'>Списъкът е празен.</div>";
         }
 
-        function renderGroup(title, list, className) {
-            if (list.length === 0 && className !== 'today') return; // Не показваме празни групи (освен днес)
-
-            const html = `
-                <div class="section-title">${title}</div>
-                ${list.map(t => `
-                    <div class="task-card ${className}">
-                        <div class="check-circle" onclick="completeTask(${t.id})">✔</div>
-                        <div class="info">
-                            <div class="text">${t.desc}</div>
-                            <div class="meta">
-                                ${t.time ? `<span>⏰ ${t.time}</span>` : ''}
-                                <span>🗓️ ${formatDate(t.date)}</span>
-                                ${t.repeat !== 'none' ? `<span class="recurrence-badge">↻ ${formatRepeat(t)}</span>` : ''}
-                            </div>
+        function renderGroup(title, list, cls) {
+            if (!list.length && cls !== 'today') return;
+            app.innerHTML += `<div class="section-title">${title}</div>`;
+            app.innerHTML += list.map(t => `
+                <div class="task-card ${cls}">
+                    <div class="check-circle" onclick="completeTask(${t.id})">✔</div>
+                    <div class="info">
+                        <div class="text">${t.desc}</div>
+                        <div class="meta">
+                            ${t.time ? `<span>⏰ ${t.time}</span>` : ''}
+                            <span>🗓️ ${formatDate(t.date)}</span>
+                            ${renderTags(t)}
                         </div>
-                        <button class="btn-del" onclick="deleteTask(${t.id})">🗑️</button>
                     </div>
-                `).join('')}
-            `;
-            document.getElementById('app').innerHTML += html;
+                    <button class="btn-del" onclick="deleteTask(${t.id})">✕</button>
+                </div>
+            `).join('');
         }
 
-        // --- 4. HELPERS ---
+        function renderTags(t) {
+            let html = "";
+            if (t.repeat !== 'none') {
+                let text = (t.repeat === 'custom') ? `${t.customInterval} дни` : (t.repeat==='weekly'?'Седмично':'Ежедневно');
+                html += `<span class="tag">↻ ${text}</span>`;
+            }
+            if (t.endDate) {
+                html += `<span class="tag tag-end">🏁 До: ${formatDate(t.endDate)}</span>`;
+            }
+            return html;
+        }
+
+        // --- Helpers ---
+        function saveData() { localStorage.setItem('tasksV5', JSON.stringify(tasks)); }
         
-        function saveData() {
-            localStorage.setItem('smartTasks', JSON.stringify(tasks));
-        }
-
-        function toggleCustomRepeat() {
+        function handleRepeatChange() {
             const val = document.getElementById('inpRepeat').value;
+            // Показваме полето за дни ако е custom
             document.getElementById('customDaysRow').style.display = (val === 'custom') ? 'block' : 'none';
+            // Показваме полето за Крайна дата ако има някакво повторение
+            document.getElementById('endDateRow').style.display = (val !== 'none') ? 'block' : 'none';
         }
 
         function openModal() { document.getElementById('modal').style.display = 'flex'; }
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-        function formatDate(dateStr) {
-            // Форматира YYYY-MM-DD към по-четим вид
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('bg-BG', { day: 'numeric', month: 'short' });
-        }
-        
-        function formatRepeat(task) {
-            if(task.repeat === 'daily') return 'Дн.';
-            if(task.repeat === 'weekly') return 'Седм.';
-            if(task.repeat === 'monthly') return 'Мес.';
-            if(task.repeat === 'custom') return `${task.customInterval} д.`;
-            return '';
-        }
+        function formatDate(d) { return new Date(d).toLocaleDateString('bg-BG', {day:'numeric', month:'short'}); }
     </script>
 </body>
 </html>
